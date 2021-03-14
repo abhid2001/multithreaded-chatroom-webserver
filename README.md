@@ -3,5 +3,5 @@
 # The TEAM
 - Gaurav Singh
 - Abhinav Dugar
-- Soharaj Gowda
+- Sohanraj Gowda
 - Nibba
