@@ -11,10 +11,14 @@
 #include <pthread.h>
 #include <errno.h>
 
+#include "vigenere.h"
+
 using namespace std;
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 2048
 #define NAME_LEN 32
+
+const string ENC_KEY = "He1l0Th3r3";
 
 volatile sig_atomic_t flag = 0;
 int sockfd = 0;
@@ -48,7 +52,7 @@ void *recieve_msg_handler(void *arg){
     while(1){
         int recieve = recv(sockfd, message, BUFFER_SZ, 0);
         if(recieve >0){
-            printf("%s ", message);
+            printf("%s ", decrypt(message, ENC_KEY).c_str());
             str_overwrite_stdout();
         }else if(recieve == 0){
             break; 
@@ -68,7 +72,9 @@ void *send_msg_handler(void *arg){
             break;
         }else{
             sprintf(message, "%s: %s\n", name, buffer);
-            send(sockfd, message, strlen(message), 0);
+            send(sockfd, encrypt(message, ENC_KEY).c_str(), strlen(message), 0);
+            // buffer is the msg
+            // message is whole thing including name of sender in format "<sender_name>: <message>"
         }
         bzero(buffer, BUFFER_SZ);
         bzero(message, BUFFER_SZ + NAME_LEN);

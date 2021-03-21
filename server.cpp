@@ -10,12 +10,14 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <signal.h>
+#include "vigenere.h"
 using namespace std;
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 2048
 
 static unsigned int cli_count = 0;
 static int uid = 10;
+const string ENC_KEY = "He1l0Th3r3";
 
 /* Client structure */
 typedef struct
@@ -95,7 +97,7 @@ void queue_remove(int uid)
 }
 
 /* Send message to all clients except sender */
-void send_message(char *s, int uid)
+void send_message(const char *s, int uid)
 {
     pthread_mutex_lock(&clients_mutex);
 
@@ -136,7 +138,7 @@ void *handle_client(void *arg)
         strcpy(cli->name, name);
         sprintf(buff_out, "%s has joined\n", cli->name);
         printf("%s", buff_out);
-        send_message(buff_out, cli->uid);
+        send_message(encrypt(buff_out, ENC_KEY).c_str(), cli->uid);
     }
 
     bzero(buff_out, BUFFER_SZ);
@@ -156,14 +158,14 @@ void *handle_client(void *arg)
                 send_message(buff_out, cli->uid);
 
                 str_trim_lf(buff_out, strlen(buff_out));
-                printf("%s -> %s\n", buff_out, cli->name);
+                printf("%s\n", decrypt(buff_out, ENC_KEY).c_str());
             }
         }
         else if (receive == 0 || strcmp(buff_out, "exit") == 0)
         {
             sprintf(buff_out, "%s has left\n", cli->name);
             printf("%s", buff_out);
-            send_message(buff_out, cli->uid);
+            send_message(encrypt(buff_out, ENC_KEY).c_str(), cli->uid);
             leave_flag = 1;
         }
         else
