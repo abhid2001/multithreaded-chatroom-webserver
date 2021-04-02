@@ -163,7 +163,7 @@ void *handle_client(void *arg)
     char buff_out[BUFFER_SZ];
     char name[32];
     
-    char leave_flag=1;
+    int leave_flag=1;
     //args *Arg = (args *)arg;
 client_t *cli = (client_t *)arg;
 	//USER AUTHENTICATION
@@ -172,6 +172,7 @@ client_t *cli = (client_t *)arg;
 	while (loggedIn--)
 	
 	{
+        cout<<loggedIn<<"";
 		read(cli->sockfd, username, MESSAGE_SIZE);
 		read(cli->sockfd, password, MESSAGE_SIZE);
 		cout << "Received Username: " << username << endl;
@@ -180,7 +181,9 @@ client_t *cli = (client_t *)arg;
 		if (checkPassword(username, password) == 1)
 		{
 			leave_flag = 0;
-		}		
+		}	
+        write(cli->sockfd, &leave_flag, 1);	
+        cout<<leave_flag<<" sup ";
 		if (!leave_flag)
 		{
 			cout << "Login Successful By " << username << endl;
@@ -277,7 +280,7 @@ int main(int argc, char **argv)
     }
 
     char *ip = "127.0.0.1";
-    char leave_flag=1;
+    int leave_flag=1;
     int port = atoi(argv[1]);
     int option = 1;
     int listenfd = 0, connfd = 0;

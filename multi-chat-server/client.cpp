@@ -96,7 +96,7 @@ int main(int argc, char **argv)
     char *ip = "127.0.0.1";
     int port = atoi(argv[1]);
     signal(SIGINT, catch_ctrl_c_and_exit);
-    char leave_flag=1;
+    int leave_flag=1;
     
     
     struct sockaddr_in server_addr;
@@ -142,9 +142,8 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-    if(!leave_flag)
-    { 
-    write(sockfd, username, sizeof(username));
+   
+    send(sockfd, username, NAME_LEN, 0);
     printf("=== WELCOME TO THE CHATROOM ===\n");
     pthread_t send_msg_thread;
     if(pthread_create(&send_msg_thread, NULL, &send_msg_handler, NULL)!=0){
@@ -162,7 +161,7 @@ int main(int argc, char **argv)
             break;
         }
     }
-    }
+    
     close(sockfd);
     return EXIT_SUCCESS;
 }
