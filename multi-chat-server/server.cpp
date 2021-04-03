@@ -165,14 +165,14 @@ void *handle_client(void *arg)
     
     int leave_flag=1;
     //args *Arg = (args *)arg;
-client_t *cli = (client_t *)arg;
+    client_t *cli = (client_t *)arg;
 	//USER AUTHENTICATION
 	char username[MESSAGE_SIZE], password[MESSAGE_SIZE], status = 0;
 	int loggedIn = 3;
 	while (loggedIn--)
 	
 	{
-        cout<<loggedIn<<"";
+        // cout<<loggedIn<<"";
 		read(cli->sockfd, username, MESSAGE_SIZE);
 		read(cli->sockfd, password, MESSAGE_SIZE);
 		cout << "Received Username: " << username << endl;
@@ -183,7 +183,7 @@ client_t *cli = (client_t *)arg;
 			leave_flag = 0;
 		}	
         write(cli->sockfd, &leave_flag, 1);	
-        cout<<leave_flag<<" sup ";
+        // cout<<leave_flag<<" sup ";
 		if (!leave_flag)
 		{
 			cout << "Login Successful By " << username << endl;
@@ -229,7 +229,7 @@ client_t *cli = (client_t *)arg;
 
     while (1)
     {
-        if (!leave_flag)
+        if (leave_flag)
         {
             break;
         }
