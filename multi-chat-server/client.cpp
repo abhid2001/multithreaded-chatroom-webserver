@@ -17,8 +17,10 @@ using namespace std;
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 2048
 #define NAME_LEN 32
+#define MESSAGE_SIZE 200
 
 const string ENC_KEY = "He1l0Th3r3";
+char username[MESSAGE_SIZE], password[MESSAGE_SIZE];
 
 volatile sig_atomic_t flag = 0;
 int sockfd = 0;
@@ -63,7 +65,7 @@ void *recieve_msg_handler(void *arg){
 }
 void *send_msg_handler(void *arg){
     char buffer[BUFFER_SZ] = {};
-    char message[BUFFER_SZ + NAME_LEN]={};
+    char message[BUFFER_SZ + MESSAGE_SIZE]={};
     while(1){
         str_overwrite_stdout();
         fgets(buffer, BUFFER_SZ, stdin);
@@ -71,13 +73,13 @@ void *send_msg_handler(void *arg){
         if(strcmp(buffer, "exit")==0){
             break;
         }else{
-            sprintf(message, "%s: %s\n", name, buffer);
+            sprintf(message, "%s: %s\n", username, buffer);
             send(sockfd, encrypt(message, ENC_KEY).c_str(), strlen(message), 0);
             // buffer is the msg
             // message is whole thing including name of sender in format "<sender_name>: <message>"
         }
         bzero(buffer, BUFFER_SZ);
-        bzero(message, BUFFER_SZ + NAME_LEN);
+        bzero(message, BUFFER_SZ + MESSAGE_SIZE);
     }
     catch_ctrl_c_and_exit(2);
     return NULL;
@@ -94,13 +96,9 @@ int main(int argc, char **argv)
     char *ip = "127.0.0.1";
     int port = atoi(argv[1]);
     signal(SIGINT, catch_ctrl_c_and_exit);
-    printf("Enter your name: ");
-    fgets(name, NAME_LEN, stdin);
-    str_trim_lf(name, strlen(name));
-    if(strlen(name)>NAME_LEN-1 || strlen(name)<2){
-        printf("The name should be of length 2 to 32\n");
-        return EXIT_FAILURE;
-    }
+    int leave_flag=1;
+    
+    
     struct sockaddr_in server_addr;
         /* Socket settings */
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -114,9 +112,38 @@ int main(int argc, char **argv)
         printf("ERROR: connect\n");
 		return EXIT_FAILURE;
     }
+    
+	int loggedIn = 3;
+	while (loggedIn--)
+	{
+		cout << "Enter Username: ";
+		cin >> username;
+		cout << "Enter Password: ";
+		cin >> password;
+		write(sockfd, username, sizeof(username));
+		write(sockfd, password, sizeof(password));
 
-    //send name 
-    send(sockfd, name, NAME_LEN, 0);
+		read(sockfd, &leave_flag, 1);
+		if (!leave_flag)
+		{
+			cout << "Successfully Logged In" << endl;
+			break;
+		}
+
+		else
+		{
+			cout << "Incorrect" << endl << endl;
+		}
+	}
+	if (loggedIn == -1)
+	{
+		cout << "Too Many Incorrect Attempts" << endl;
+		close(sockfd);
+		exit(1);
+	}
+
+   
+    send(sockfd, username, NAME_LEN, 0);
     printf("=== WELCOME TO THE CHATROOM ===\n");
     pthread_t send_msg_thread;
     if(pthread_create(&send_msg_thread, NULL, &send_msg_handler, NULL)!=0){
@@ -134,6 +161,7 @@ int main(int argc, char **argv)
             break;
         }
     }
+    
     close(sockfd);
     return EXIT_SUCCESS;
 }

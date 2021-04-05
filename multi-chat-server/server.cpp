@@ -14,10 +14,49 @@
 using namespace std;
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 2048
+#define MESSAGE_SIZE 200
 
 static unsigned int cli_count = 0;
 static int uid = 10;
 const string ENC_KEY = "He1l0Th3r3";
+
+
+int checkPassword(char username[], char password[])
+{
+	ifstream fileIn("Users/userList.txt");
+
+	if (!fileIn)
+	{
+		return 0;
+	}
+
+	string usernameT, passwordT;
+	string user = string(username);
+	string pass = string(password);
+
+	while (!fileIn.eof())
+	{
+		fileIn >> usernameT >> passwordT;
+
+		if (usernameT == user)
+		{
+			if (passwordT == pass)
+			{
+				fileIn.close();
+				return 1;
+			}
+
+			else
+			{
+				fileIn.close();
+				return -1;
+			}
+		}
+	}
+
+	fileIn.close();
+	return 0;
+}
 
 /* Client structure */
 typedef struct
@@ -27,6 +66,7 @@ typedef struct
     int uid;
     char name[32];
 } client_t;
+
 
 client_t *clients[MAX_CLIENTS];
 
@@ -122,21 +162,65 @@ void *handle_client(void *arg)
 {
     char buff_out[BUFFER_SZ];
     char name[32];
-    int leave_flag = 0;
+    
+    int leave_flag=1;
+    //args *Arg = (args *)arg;
+    client_t *cli = (client_t *)arg;
+	//USER AUTHENTICATION
+	char username[MESSAGE_SIZE], password[MESSAGE_SIZE], status = 0;
+	int loggedIn = 3;
+	while (loggedIn--)
+	
+	{
+        // cout<<loggedIn<<"";
+		read(cli->sockfd, username, MESSAGE_SIZE);
+		read(cli->sockfd, password, MESSAGE_SIZE);
+		cout << "Received Username: " << username << endl;
+		cout << "Received Password: " << password << endl;
+
+		if (checkPassword(username, password) == 1)
+		{
+			leave_flag = 0;
+		}	
+        write(cli->sockfd, &leave_flag, 1);	
+        // cout<<leave_flag<<" sup ";
+		if (!leave_flag)
+		{
+			cout << "Login Successful By " << username << endl;
+			break;
+		}
+
+		else
+		{
+			cout << "Incorrect" << endl << endl;
+			
+		}
+	}
+	
+	if (loggedIn == -1)
+	{
+		cout << "Too Many Incorrect Attempts" << endl;
+		close(cli->sockfd);
+		pthread_exit(NULL);
+	}
+	
+
+	//GET RECIPIENT NAME AND OPEN RESPECTIVE FILES
+	
 
     cli_count++;
-    client_t *cli = (client_t *)arg;
+    
 
     // Name
-    if (recv(cli->sockfd, name, 32, 0) <= 0 || strlen(name) < 2 || strlen(name) >= 32 - 1)
+    if (read(cli->sockfd, username, MESSAGE_SIZE ) <= 0 && strlen(username) < 2 && strlen(username) >= MESSAGE_SIZE - 1)
     {
         printf("Didn't enter the name.\n");
         leave_flag = 1;
     }
     else
     {
-        strcpy(cli->name, name);
-        sprintf(buff_out, "%s has joined\n", cli->name);
+        //strcpy(cli->name, username);
+        sprintf(buff_out, "%s has joined\n", username);
         printf("%s", buff_out);
         send_message(encrypt(buff_out, ENC_KEY).c_str(), cli->uid);
     }
@@ -163,7 +247,7 @@ void *handle_client(void *arg)
         }
         else if (receive == 0 || strcmp(buff_out, "exit") == 0)
         {
-            sprintf(buff_out, "%s has left\n", cli->name);
+            sprintf(buff_out, "%s has left\n", username);
             printf("%s", buff_out);
             send_message(encrypt(buff_out, ENC_KEY).c_str(), cli->uid);
             leave_flag = 1;
@@ -196,6 +280,7 @@ int main(int argc, char **argv)
     }
 
     char *ip = "127.0.0.1";
+    int leave_flag=1;
     int port = atoi(argv[1]);
     int option = 1;
     int listenfd = 0, connfd = 0;
@@ -233,6 +318,7 @@ int main(int argc, char **argv)
     }
 
     printf("=== WELCOME TO THE CHATROOM ===\n");
+    
 
     while (1)
     {
@@ -256,7 +342,10 @@ int main(int argc, char **argv)
 
         /* Add client to the queue and fork thread */
         queue_add(cli);
-        pthread_create(&tid, NULL, &handle_client, (void *)cli);
+      
+        
+        pthread_create(&tid, NULL, handle_client, (void *)cli);
+        
 
         /* Reduce CPU usage */
         sleep(1);
